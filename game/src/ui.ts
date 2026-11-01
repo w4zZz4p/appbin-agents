@@ -37,3 +37,15 @@ export async function shareLink(title: string, text: string, url: string): Promi
     return 'prompt';
   }
 }
+
+const mapNote = document.getElementById('mapnote') as HTMLDivElement;
+mapNote.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+/** Small, dismissible, never blocks play (taps elsewhere still steer/restart). */
+export function showMapNote(onDismiss: () => void): void {
+  mapNote.style.display = 'flex';
+  (mapNote.querySelector('button') as HTMLButtonElement).onclick = () => {
+    mapNote.style.display = 'none';
+    onDismiss();
+  };
+}

@@ -39,3 +39,13 @@ golden-hash job (Chromium, Firefox, WebKit) is in CI. Open items:
 - A real Android golden check.
 - The P0 lane decision. The arm stays in until P0 playtest data arrives; challenge links
   carry the arm so replays stay exact.
+
+### 2026-11-01 Facilitator — P2 build ready (ahead of the P1 gate)
+At the user's request, P2 is built before P1 testing. It adds a river map on the crash
+panel: each run lights `max(1, distance/1000)` of 40 stretches per river, and progress is
+saved in versioned storage that is safe when wiped. A "kept in this browser" note appears
+after run 3, and a lantern-gold boat unlocks at 15 stretches. Half of the installs (by
+install-ID hash) never see any of it, so the D1 lift can be measured. Events and
+`days_since_first` are logged for the D1 calculation. If P1 fails its gate, the plan
+says to stop the concept and this work is shelved. The lift can only be measured with
+the analytics endpoint and about 1,500 players per arm on a portal.

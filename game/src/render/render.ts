@@ -12,8 +12,20 @@ export interface GhostView {
   kind: 'last' | 'challenge';
 }
 
+export interface MapView {
+  river: number;
+  stretches: number; // stretches per river
+  from: number; // lit before this run
+  to: number; // lit after this run (may equal stretches when a river was completed)
+  added: number;
+  progress: number; // 0..1 lighting animation
+  caption: string;
+}
+
 export interface Overlay {
   ghosts: GhostView[];
+  map: MapView | null;
+  boatColor: string;
   /** Small line under the hint at the start of a run (e.g. "Today's river, same for everyone"). */
   note: string;
   /** Extra line on the crash panel. */
@@ -160,7 +172,7 @@ export class Renderer {
       ctx.stroke();
     }
 
-    this.drawBoat(sx(bx), this.boatSY, sim, scale, sim.alive ? '#f6f3ea' : '#c9c4b6');
+    this.drawBoat(sx(bx), this.boatSY, sim, scale, sim.alive ? o.boatColor : '#c9c4b6');
 
     // fog beyond vision (lanterns push it back ~1 s)
     const vy = sy(by + sim.vision);
@@ -189,6 +201,82 @@ export class Renderer {
     }
 
     this.drawUi(sim, o);
+  }
+
+  /** The river map panel: a serpentine of stretches, lit ones glowing like lanterns. */
+  private drawMap(m: MapView, u: number): void {
+    const { ctx, w, h } = this;
+    const pw = Math.min(w - 32 * u, 420 * u);
+    const ph = Math.min(h * 0.25, 190 * u);
+    const x0 = (w - pw) / 2;
+    const y0 = h * 0.68;
+    ctx.fillStyle = 'rgba(10, 16, 26, 0.92)';
+    roundRect(ctx, x0, y0, pw, ph, 14 * u);
+    ctx.fill();
+
+    const cols = 10;
+    const rows = Math.ceil(m.stretches / cols);
+    const pad = 22 * u;
+    const top = y0 + 40 * u;
+    const rowH = (ph - 40 * u - pad * 0.8) / rows;
+    const pt = (i: number): [number, number] => {
+      const row = Math.floor(i / cols), k = i % cols;
+      const c = row % 2 === 0 ? k : cols - 1 - k;
+      const x = x0 + pad + (c * (pw - 2 * pad)) / (cols - 1);
+      const y = top + row * rowH + Math.sin(c * 1.3 + row * 2) * rowH * 0.12;
+      return [x, y];
+    };
+    const shown = Math.min(m.stretches, m.from + (m.to - m.from) * m.progress);
+
+    // unlit river
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    ctx.lineWidth = 3 * u;
+    ctx.beginPath();
+    for (let i = 0; i <= m.stretches; i++) ctx[i === 0 ? 'moveTo' : 'lineTo'](...pt(i));
+    ctx.stroke();
+
+    // lit stretches (the newly lit ones are brighter)
+    const drawLit = (a: number, b: number, color: string, width: number) => {
+      if (b <= a) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(...pt(Math.floor(a)));
+      for (let i = Math.floor(a) + 1; i <= Math.floor(b); i++) ctx.lineTo(...pt(i));
+      const f = b - Math.floor(b);
+      if (f > 0 && Math.floor(b) < m.stretches) {
+        const [ax, ay] = pt(Math.floor(b)), [bx, by] = pt(Math.floor(b) + 1);
+        ctx.lineTo(ax + (bx - ax) * f, ay + (by - ay) * f);
+      }
+      ctx.stroke();
+    };
+    drawLit(0, Math.min(shown, m.from), 'rgba(255, 214, 107, 0.75)', 4 * u);
+    drawLit(m.from, shown, '#fff1b8', 5 * u);
+
+    // lantern at the head of the light
+    const hi = Math.floor(shown);
+    let [hx, hy] = pt(hi);
+    if (hi < m.stretches && shown > hi) {
+      const [nx, ny] = pt(hi + 1);
+      hx += (nx - hx) * (shown - hi);
+      hy += (ny - hy) * (shown - hi);
+    }
+    const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, 14 * u);
+    g.addColorStop(0, 'rgba(255, 225, 140, 0.95)');
+    g.addColorStop(1, 'rgba(255, 225, 140, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(hx - 14 * u, hy - 14 * u, 28 * u, 28 * u);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = `600 ${Math.round(13 * u)}px system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillText(`River ${m.river} · ${Math.floor(shown)} / ${m.stretches} lit`, x0 + pad * 0.7, y0 + 12 * u);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffe9a8';
+    ctx.fillText(m.caption || `+${m.added}`, x0 + pw - pad * 0.7, y0 + 12 * u);
   }
 
   private drawBoat(x: number, y: number, sim: Sim, scale: number, color: string): void {
@@ -282,6 +370,8 @@ export class Renderer {
       }
     }
 
+    if (o.crashed && o.map) this.drawMap(o.map, u);
+
     if (o.fps) {
       ctx.textAlign = 'right';
       ctx.font = `${Math.round(12 * dpr)}px ui-monospace, monospace`;
@@ -292,4 +382,14 @@ export class Renderer {
       ctx.fillText(o.fps, w - 8 * dpr, h - 21 * dpr);
     }
   }
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }

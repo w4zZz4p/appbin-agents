@@ -1,14 +1,37 @@
-# Driftline — P1 (daily river + link ghost)
+# Driftline — P2 (river map)
 
 Prototype stages from [`product/PROTOTYPE.md`](../product/PROTOTYPE.md).
 
 - **P0 (feel test):** one procedural river, hold-a-side steering, lanterns, rocks, a speed
   and narrowing ramp, and the lane-choice A/B arm.
-- **P1 (current build):**
+- **P1:**
   - A daily river from the UTC date, the same for everyone.
   - Your last run on that river races you as a white ghost wake.
   - "Challenge a friend" shares a link. The friend races your golden wake.
-- **Not built yet:** the river map (P2), ads and the continue (P3), servers and leaderboards.
+- **P2 (current build):** a river map that carries over between sessions, shown to half of
+  the installs (holdout) so its effect on next-day return (D1) can be measured.
+- **Not built yet:** ads and the continue (P3), servers and leaderboards.
+
+## P2: river map (holdout test)
+
+- **Lighting** (`src/meta/map.ts`): every finished run lights map stretches in proportion
+  to the distance travelled, `max(1, floor(distance / 1000))`, so even a first crash
+  lights one (R4). A river has 40 stretches. When it is fully lit, the next river opens.
+- **Where it shows:** on the crash panel, as a serpentine river. Earlier stretches glow,
+  the new ones light up in turn, and a lantern marks the head.
+- **Storage:** its own versioned key (`driftline.map.v1`). Wiped, corrupt, old-schema or
+  blocked storage starts a fresh map and never blocks play (unit-tested).
+- **Note:** after run 3, a small dismissible note says the map is kept in this browser.
+  It appears once and never blocks play.
+- **Unlock:** a placeholder cosmetic, a lantern-gold boat, after 15 lit stretches.
+- **Holdout:** the arm comes from the anonymous install ID (hashed, mod 2). Arm 1 sees the
+  map, the note and the unlock. Arm 0 gets exactly the P1 game. Same build, same rivers;
+  `?map=0|1` overrides. Every event carries `map_arm`.
+- **Events:** `map_light` (added, lit, river, total), `map_river_complete`, `unlock`,
+  `save_note_shown`, `save_note_dismissed`, and `return_visit` now includes
+  `days_since_first` for D1.
+- **Measuring it** needs about 1,500 returning-eligible players per arm (a portal soft
+  launch) and the analytics endpoint. Playtests only give direction.
 
 ## P1: daily river, ghosts and challenges
 
@@ -76,6 +99,7 @@ npm run golden     # same replays hash identically in Node + Chromium/Firefox/We
 | `?src=<tag>` | Recruitment tag, stored on every logged event. |
 | `?fps=1` | FPS overlay (p50, p5, frame CPU). |
 | `?debug=1` | Debug panel: arm, seed, run count, **Export log** (JSON), Clear log, switch arm. Also turns on the FPS overlay. |
+| `?map=0` / `?map=1` | Force the P2 map holdout arm (default: from the install ID). |
 | `?seed=<n>` | Fixed river seed instead of the daily one (debug; sharing is off). |
 | `#c=<code>` | Challenge link (created by the game's share button). |
 
@@ -113,6 +137,18 @@ Every event carries `arm`, `build`, `install` (random ID), `src` and `arrival_ty
   ahead, with a 72-unit narrow channel holding 6 lanterns next to a wider safe channel
   holding 1.
 - All tuning numbers are in `src/sim/tuning.ts`.
+
+## P2 status
+
+| P2 item | Status |
+|---|---|
+| Each run lights stretches ∝ distance, minimum one (R4) | ✅ unit-tested |
+| Map drawn on canvas, carries over between sessions | ✅ checked in Chromium |
+| Versioned storage that never blocks play when wiped | ✅ unit-tested and checked with corrupt storage |
+| "Saved in this browser" note after run 3, dismissible | ✅ |
+| One cosmetic placeholder unlock (boat tint) | ✅ |
+| Holdout by install ID, same build and seeds | ✅ ~50/50 split unit-tested; `map_arm` on every event |
+| D1 lift ≥ +5 pp with ≥ 1,500 per arm | ⏳ needs the analytics endpoint and a portal soft launch |
 
 ## P1 status
 

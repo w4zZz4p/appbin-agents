@@ -2,15 +2,19 @@ import { EventLog } from './analytics/log.ts';
 import { Sfx } from './audio/sfx.ts';
 import { Input } from './input/input.ts';
 import { dayLabel, seedForDay, utcDay } from './meta/daily.ts';
+import { MAP_STRETCHES, lightRun, loadMap, mapArm, saveMap } from './meta/map.ts';
 import { decodeChallenge, encodeChallenge, type Challenge } from './meta/share.ts';
 import { load, randomId, randomSeed, save } from './meta/storage.ts';
-import { Renderer } from './render/render.ts';
+import { Renderer, type MapView } from './render/render.ts';
 import { Ghost, Recorder, type Runs } from './sim/replay.ts';
 import { Sim } from './sim/sim.ts';
 import { FP, SIM_VERSION, TICK_HZ } from './sim/tuning.ts';
-import { shareLink, showShare, toast } from './ui.ts';
+import { shareLink, showMapNote, showShare, toast } from './ui.ts';
 
-const BUILD = 'p1-0.2.0';
+const BUILD = 'p2-0.3.0';
+const BOAT = '#f6f3ea';
+const BOAT_TINT = '#ffd98a'; // placeholder unlock: lantern gold
+const MAP_ANIM_MS = 1200;
 const STEP_MS = 1000 / TICK_HZ;
 const MAX_CATCHUP = 5;
 const RESTART_LOCK_MS = 350; // ignore presses right after a crash
@@ -29,6 +33,13 @@ const debug = params.get('debug') === '1';
 const showFps = params.get('fps') === '1' || debug;
 const beaconUrl = import.meta.env.VITE_BEACON_URL ?? '';
 
+// P2 holdout: the river map is shown to half the installs (stable per install ID).
+const mapParam = params.get('map');
+const mapOn = mapParam === '0' || mapParam === '1' ? mapParam === '1' : mapArm(saved.installId) === 1;
+let mapState = loadMap();
+let mapView: MapView | null = null;
+let mapAnimStart = 0;
+
 // --- challenge link (#c=...) -------------------------------------------------------
 const hash = new URLSearchParams(location.hash.slice(1));
 const rawCode = hash.get('c');
@@ -42,12 +53,15 @@ const renderer = new Renderer(canvas);
 const input = new Input(canvas);
 const sfx = new Sfx();
 sfx.enabled = saved.sound;
-const log = new EventLog(randomId(), { arm, build: BUILD, install: saved.installId, src: params.get('src') ?? '', arrival_type: arrival }, beaconUrl);
+const log = new EventLog(randomId(), { arm, map_arm: mapOn ? 1 : 0, build: BUILD, install: saved.installId, src: params.get('src') ?? '', arrival_type: arrival }, beaconUrl);
 if (beaconUrl) (document.getElementById('privacy') as HTMLDivElement).style.display = 'block';
 
 let today = utcDay();
 log.add('load', { ms: Math.round(performance.now()), w: innerWidth, h: innerHeight, dpr: devicePixelRatio || 1, day: today });
-if (saved.lastDay !== null && saved.lastDay !== today) log.add('return_visit', { days_since_last: today - saved.lastDay });
+if (saved.firstDay === null) saved.firstDay = today;
+if (saved.lastDay !== null && saved.lastDay !== today) {
+  log.add('return_visit', { days_since_last: today - saved.lastDay, days_since_first: today - saved.firstDay });
+}
 saved.lastDay = today;
 save(saved);
 
@@ -147,10 +161,36 @@ function endRun(cause: string): void {
     beat_challenge: challengeGhost ? sim.score > challengeGhost.sim.score : null,
   });
 
+  if (mapOn) lightMap();
+
   if (seedParam === null) {
     const finished = { ...course };
     const stretch = sim.stretch;
     showShare(true, () => void shareRun(finished, runs, stretch));
+  }
+}
+
+function lightMap(): void {
+  const r = lightRun(mapState, sim.yUnits);
+  mapState = r.after;
+  saveMap(mapState);
+  const done = r.completedRivers > 0;
+  mapView = {
+    river: r.before.river, stretches: MAP_STRETCHES, from: r.before.lit, to: done ? MAP_STRETCHES : r.after.lit,
+    added: r.added, progress: 0, caption: done ? `River ${r.before.river} complete!` : `+${r.added}`,
+  };
+  mapAnimStart = performance.now();
+  log.add('map_light', { run_id: runId, added: r.added, lit: r.after.lit, river: r.after.river, total: r.after.total });
+  if (done) log.add('map_river_complete', { river: r.before.river, total: r.after.total });
+  if (r.unlockedTint) {
+    log.add('unlock', { item: 'tint_lantern_gold', total: r.after.total });
+    setTimeout(() => toast('New boat colour unlocked: lantern gold', 3000), MAP_ANIM_MS);
+  }
+  if (attempt >= 3 && !saved.mapNoteDismissed) {
+    saved.mapNoteDismissed = true; // show once
+    save(saved);
+    log.add('save_note_shown');
+    showMapNote(() => log.add('save_note_dismissed'));
   }
 }
 
@@ -260,7 +300,10 @@ function frame(now: number): void {
   if (firstInput && hint > 0 && sim.tick > 180) hint = Math.max(0, hint - dt / 600);
 
   const st = showFps ? fpsStats() : null;
+  if (mapView) mapView.progress = Math.min(1, (now - mapAnimStart) / MAP_ANIM_MS);
   renderer.draw(sim, {
+    map: !sim.alive && mapOn ? mapView : null,
+    boatColor: mapOn && mapState.tint ? BOAT_TINT : BOAT,
     trail, held: [input.state.isActive(0), input.state.isActive(1)], hint, crashed: !sim.alive,
     best: course.challenge || seedParam !== null ? saved.best : saved.bestDay === course.day ? saved.bestToday : 0,
     newBest, fps: st ? `${st.p50} fps · p5 ${st.p5} · ${cpuMs.toFixed(1)} ms` : null,
@@ -320,6 +363,7 @@ if (debug) {
   });
   setInterval(() => {
     info.textContent = `${BUILD} · arm ${arm} · day ${course.day} · seed ${sim.seed} · run ${attempt} · ` +
-      `t ${sim.seconds.toFixed(1)}s · ghosts ${ghosts.length} · events ${log.events.length}${beaconUrl ? ' · beacon on' : ''}`;
+      `t ${sim.seconds.toFixed(1)}s · ghosts ${ghosts.length} · map ${mapOn ? `on r${mapState.river} ${mapState.lit}/${MAP_STRETCHES}` : 'off'} · ` +
+      `events ${log.events.length}${beaconUrl ? ' · beacon on' : ''}`;
   }, 250);
 }

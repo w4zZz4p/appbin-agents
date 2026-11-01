@@ -15,8 +15,11 @@ export interface Saved {
   arm: 0 | 1 | null;
   installId: string;
   sound: boolean;
-  /** UTC day of the last visit (for return_visit). */
+  /** UTC day of the last and the first visit (for return_visit / D1). */
   lastDay: number | null;
+  firstDay: number | null;
+  /** P2: the "map is saved in this browser" note was dismissed. */
+  mapNoteDismissed: boolean;
   /** Today's best score and last run on the daily river (ghost). */
   bestDay: number | null;
   bestToday: number;
@@ -26,7 +29,7 @@ export interface Saved {
 export function load(): Saved {
   const fresh: Saved = {
     schema: SCHEMA, best: 0, arm: null, installId: randomId(), sound: true,
-    lastDay: null, bestDay: null, bestToday: 0, lastRun: null,
+    lastDay: null, firstDay: null, mapNoteDismissed: false, bestDay: null, bestToday: 0, lastRun: null,
   };
   try {
     const raw = localStorage.getItem(KEY);
