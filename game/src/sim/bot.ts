@@ -17,14 +17,23 @@ export class Bot {
 
   readonly mode: BotMode;
   readonly errorUnits: number;
+  /** Re-decide only every N ticks, like a person (1 = every tick). */
+  readonly decideEvery: number;
+  private since = 0;
 
-  constructor(mode: BotMode, errorUnits = 0, seed = 1) {
+  constructor(mode: BotMode, errorUnits = 0, seed = 1, decideEvery = 1) {
     this.mode = mode;
     this.errorUnits = errorUnits;
+    this.decideEvery = decideEvery;
     this.rng = new Prng(seed ^ 0x9e3779b9);
   }
 
   input(sim: Sim): number {
+    if (this.decideEvery > 1 && this.since > 0) {
+      this.since = (this.since + 1) % this.decideEvery;
+      return this.held;
+    }
+    if (this.decideEvery > 1) this.since = 1;
     const lookTicks = 14;
     const lookY = sim.y + speedTick(sim.y) * lookTicks;
     const row = Math.floor(lookY / (ROW * FP));

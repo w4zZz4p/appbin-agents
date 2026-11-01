@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "size": "node scripts/size-check.mjs",
-    "bot": "node --experimental-strip-types scripts/bot-autopilot.ts"
+    "bot": "node --experimental-strip-types scripts/bot-autopilot.ts",
+    "golden": "node tests/golden/golden.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3",

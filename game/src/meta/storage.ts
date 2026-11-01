@@ -2,16 +2,32 @@
 const KEY = 'driftline.v1';
 const SCHEMA = 1;
 
+export interface SavedRun {
+  day: number;
+  lanes: boolean;
+  simVersion: number;
+  runs: number[];
+}
+
 export interface Saved {
   schema: number;
   best: number;
   arm: 0 | 1 | null;
   installId: string;
   sound: boolean;
+  /** UTC day of the last visit (for return_visit). */
+  lastDay: number | null;
+  /** Today's best score and last run on the daily river (ghost). */
+  bestDay: number | null;
+  bestToday: number;
+  lastRun: SavedRun | null;
 }
 
 export function load(): Saved {
-  const fresh: Saved = { schema: SCHEMA, best: 0, arm: null, installId: randomId(), sound: true };
+  const fresh: Saved = {
+    schema: SCHEMA, best: 0, arm: null, installId: randomId(), sound: true,
+    lastDay: null, bestDay: null, bestToday: 0, lastRun: null,
+  };
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return fresh;

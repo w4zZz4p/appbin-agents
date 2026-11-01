@@ -28,3 +28,14 @@ takes 4–12 ms, and the bot lane balance ratio is 0.80–0.95. Remaining gates 
 and a device: the second-run rate, session length and fairness from 20+ testers, and
 FPS on a 2019 Android. Tuning: narrow channel 72 units with 6 lanterns, so the narrow
 lane pays off for skilled play and costs weaker play.
+
+### 2026-11-01 Facilitator — P1 build ready
+P1 is live on the same Pages URL. It has the daily UTC river, a last-run ghost, "Challenge
+a friend" links (seed, version and inputs only, about 260 characters at most for 90 s),
+and the arrival rules from PROTOTYPE §2. The P1 events are logged, and a cross-browser
+golden-hash job (Chromium, Firefox, WebKit) is in CI. Open items:
+- A beacon endpoint for remote analytics (open question 1).
+- Checking that links survive WhatsApp, iMessage, Discord and portal iframes.
+- A real Android golden check.
+- The P0 lane decision. The arm stays in until P0 playtest data arrives; challenge links
+  carry the arm so replays stay exact.

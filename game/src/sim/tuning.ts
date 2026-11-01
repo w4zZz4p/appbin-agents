@@ -79,3 +79,7 @@ export function speedUnits(y: number): number {
 export function riverWidth(y: number): number {
   return Math.max(WIDTH_MIN, WIDTH_START - Math.floor(y / WIDTH_DIV));
 }
+
+/** Bump whenever a change alters simulation results (river, physics, scoring).
+ *  Share codes and ghosts carry it; a mismatch shows a notice instead of a wrong replay. */
+export const SIM_VERSION = 1;

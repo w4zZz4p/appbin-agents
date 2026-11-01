@@ -6,7 +6,18 @@ const WATER = ['#3d8fc4', '#2f78ad', '#28639a', '#245089', '#2a4479', '#33396b']
 const LAND = ['#3f6b45', '#3a6044', '#355542', '#314a40', '#2e413d', '#2b3839'];
 const FOG = 'rgba(14, 22, 34, 0.9)';
 
+export interface GhostView {
+  sim: Sim;
+  trail: number[];
+  kind: 'last' | 'challenge';
+}
+
 export interface Overlay {
+  ghosts: GhostView[];
+  /** Small line under the hint at the start of a run (e.g. "Today's river, same for everyone"). */
+  note: string;
+  /** Extra line on the crash panel. */
+  crashNote: string;
   trail: number[]; // flat [x, y, x, y, ...] in units
   held: [boolean, boolean];
   hint: number; // 0..1 alpha
@@ -123,6 +134,21 @@ export class Renderer {
       ctx.fill();
     }
 
+    // ghosts: earlier runs replayed on the same river
+    for (const g of o.ghosts) {
+      const col = g.kind === 'challenge' ? '255, 214, 92' : '230, 240, 255';
+      if (g.trail.length >= 4) {
+        ctx.strokeStyle = `rgba(${col}, ${g.kind === 'challenge' ? 0.45 : 0.28})`;
+        ctx.lineWidth = 3 * scale;
+        ctx.beginPath();
+        ctx.moveTo(sx(g.trail[0]), sy(g.trail[1]));
+        for (let i = 2; i < g.trail.length; i += 2) ctx.lineTo(sx(g.trail[i]), sy(g.trail[i + 1]));
+        ctx.stroke();
+      }
+      const gy = sy(g.sim.y / FP);
+      if (gy > -20 && gy < h + 20) this.drawBoat(sx(g.sim.x / FP), gy, g.sim, scale, `rgba(${col}, ${g.sim.alive ? (g.kind === 'challenge' ? 0.85 : 0.5) : 0.3})`);
+    }
+
     // trail of this run
     if (o.trail.length >= 4) {
       ctx.strokeStyle = o.crashed ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)';
@@ -134,7 +160,7 @@ export class Renderer {
       ctx.stroke();
     }
 
-    this.drawBoat(sx(bx), this.boatSY, sim, scale);
+    this.drawBoat(sx(bx), this.boatSY, sim, scale, sim.alive ? '#f6f3ea' : '#c9c4b6');
 
     // fog beyond vision (lanterns push it back ~1 s)
     const vy = sy(by + sim.vision);
@@ -149,17 +175,30 @@ export class Renderer {
       ctx.fillRect(0, vy - edge, w, edge);
     }
 
+    // ghosts ahead of the screen: a marker at the top edge
+    for (const g of o.ghosts) {
+      if (!g.sim.alive || sy(g.sim.y / FP) > 0) continue;
+      const x = sx(g.sim.x / FP);
+      ctx.fillStyle = g.kind === 'challenge' ? 'rgba(255, 200, 110, 0.9)' : 'rgba(230, 240, 255, 0.8)';
+      ctx.beginPath();
+      ctx.moveTo(x, 6 * this.dpr);
+      ctx.lineTo(x + 7 * this.dpr, 18 * this.dpr);
+      ctx.lineTo(x - 7 * this.dpr, 18 * this.dpr);
+      ctx.closePath();
+      ctx.fill();
+    }
+
     this.drawUi(sim, o);
   }
 
-  private drawBoat(x: number, y: number, sim: Sim, scale: number): void {
+  private drawBoat(x: number, y: number, sim: Sim, scale: number, color: string): void {
     const { ctx } = this;
     const angle = Math.atan2(sim.vx, speedTick(sim.y)) * 0.8;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
     const hw = BOAT_HW * scale, hl = BOAT_HL * scale;
-    ctx.fillStyle = sim.alive ? '#f6f3ea' : '#c9c4b6';
+    ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(0, -hl);
     ctx.lineTo(hw, hl * 0.2);
@@ -168,7 +207,7 @@ export class Renderer {
     ctx.lineTo(-hw, hl * 0.2);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = '#d9d3c3';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
     ctx.beginPath();
     ctx.moveTo(0, -hl);
     ctx.lineTo(hw * 0.35, hl * 0.6);
@@ -213,10 +252,18 @@ export class Renderer {
       ctx.fillText('›', w * 0.88, h * 0.78);
       ctx.globalAlpha = 1;
     }
+    if (o.note && sim.alive && sim.tick < 300) {
+      ctx.globalAlpha = Math.min(1, (300 - sim.tick) / 60);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffe9a8';
+      ctx.font = `${Math.round(14 * u)}px system-ui, sans-serif`;
+      ctx.fillText(o.note, w / 2, h * 0.8 + 28 * u);
+      ctx.globalAlpha = 1;
+    }
 
     if (o.crashed) {
       ctx.fillStyle = 'rgba(10, 16, 26, 0.55)';
-      ctx.fillRect(0, h * 0.28, w, h * 0.26);
+      ctx.fillRect(0, h * 0.28, w, Math.max(h * 0.26, 140 * u));
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffffff';
       ctx.font = `700 ${Math.round(26 * u)}px system-ui, sans-serif`;
@@ -228,6 +275,11 @@ export class Renderer {
       ctx.font = `600 ${Math.round(18 * u)}px system-ui, sans-serif`;
       ctx.fillStyle = '#ffe9a8';
       ctx.fillText('Tap to drift again', w / 2, h * 0.31 + 70 * u);
+      if (o.crashNote) {
+        ctx.font = `${Math.round(13 * u)}px system-ui, sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.fillText(o.crashNote, w / 2, h * 0.31 + 98 * u);
+      }
     }
 
     if (o.fps) {
