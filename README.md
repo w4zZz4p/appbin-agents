@@ -5,7 +5,8 @@ Claude Code agents for product work.
 ## Product Owner agents
 
 `.claude/agents/product-owner.md` defines a **product-owner** subagent (runs on Haiku)
-that brainstorms and decides product features. Run several at once, each with its own
+that brainstorms and decides features for a **browser game**: mechanics, onboarding,
+progression, retention, social features, monetization, and web performance. Run several at once, each with its own
 persona; they collaborate through the shared board in `product/`.
 
 ### Usage
@@ -13,8 +14,9 @@ persona; they collaborate through the shared board in `product/`.
 1. Fill in `product/VISION.md`.
 2. In Claude Code, ask for a multi-PO session, e.g.:
 
-   > Run 3 product-owner agents in parallel: PO-Growth (acquisition & activation),
-   > PO-UX (usability & delight), PO-Revenue (monetization). Round 1: each writes up to
+   > Run 4 product-owner agents in parallel: PO-Design (core loop & mechanics),
+   > PO-Player (onboarding & retention), PO-Social (virality & multiplayer),
+   > PO-Tech (performance & mobile browsers). Round 1: each writes up to
    > 2 proposals. Round 2: each reviews the others' proposals. Round 3: vote and
    > record decisions in product/decisions and the backlog.
 
@@ -23,7 +25,7 @@ proposal review sections, and `SendMessage` when available.
 
 ### Board layout
 
-- `product/VISION.md` – vision & constraints
+- `product/VISION.md` – game vision (genre, core loop, players, constraints)
 - `product/proposals/` – one file per feature proposal
 - `product/BOARD.md` – append-only discussion log
 - `product/decisions/` – recorded decisions with votes
