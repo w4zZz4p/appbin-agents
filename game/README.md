@@ -13,6 +13,15 @@ npm run dev        # http://localhost:5173
 npm run build      # static site in dist/ (host anywhere, e.g. GitHub Pages)
 ```
 
+### Hosting (GitHub Pages)
+
+`.github/workflows/pages.yml` tests, builds and publishes `game/dist` on every push that
+touches `game/`, and can also be run by hand (Actions → deploy-pages → Run workflow).
+One-time setup: in the repository's **Settings → Pages**, set **Source** to **GitHub Actions**.
+The site is served at `https://<owner>.github.io/<repo>/`. Share playtest links with
+flags, e.g. `.../?src=friends1`. Note: Pages for a private repository requires a paid
+GitHub plan, and the published site is public unless the org uses private Pages.
+
 Checks (also run in CI, `.github/workflows/game-ci.yml`):
 
 ```sh
