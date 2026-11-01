@@ -20,3 +20,11 @@ reviewed them (both "approve with changes"). Conflicts were resolved in
 required P0 A/B arm. Both authors applied the edits; the docs are consistent.
 Waiting on the user: PROTOTYPE open questions (hosting/analytics owner, tester source, EU
 consent, 2019 Android test device, target portal and its break rules).
+
+### 2026-11-01 Facilitator — P0 build ready for playtest
+The P0 feel test is built in `game/` (see `game/README.md`). Automated gates pass:
+1,000/1,000 seeds are passable on both arms, the first lantern arrives at 2.5 s, restart
+takes 4–12 ms, and the bot lane balance ratio is 0.80–0.95. Remaining gates need people
+and a device: the second-run rate, session length and fairness from 20+ testers, and
+FPS on a 2019 Android. Tuning: narrow channel 72 units with 6 lanterns, so the narrow
+lane pays off for skilled play and costs weaker play.

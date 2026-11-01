@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0e1622" />
+    <title>Driftline (P0)</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0e1622; }
+      body { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
+      canvas { display: block; width: 100vw; height: 100vh; height: 100dvh; }
+      #sound { position: fixed; top: max(10px, env(safe-area-inset-top)); right: 10px; width: 40px; height: 40px; border: 0; border-radius: 20px;
+        background: rgba(0,0,0,0.25); color: #fff; font: 18px system-ui, sans-serif; cursor: pointer; }
+      #debug { position: fixed; left: 8px; bottom: 8px; padding: 8px; background: rgba(0,0,0,0.65); color: #fff; font: 12px ui-monospace, monospace;
+        border-radius: 6px; display: none; }
+      #debug button { font: inherit; margin: 4px 4px 0 0; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game" aria-label="Driftline: hold the left or right side to steer"></canvas>
+    <button id="sound" aria-label="Toggle sound">♪</button>
+    <div id="debug"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

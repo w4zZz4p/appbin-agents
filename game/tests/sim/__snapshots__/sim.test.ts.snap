@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`determinism > golden hash is stable (update only on an intentional sim change) 1`] = `
+{
+  "hash": 3310876757,
+  "lanterns": 24,
+  "tick": 3600,
+  "y": 1975499,
+}
+`;
