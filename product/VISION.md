@@ -35,7 +35,7 @@
 |---|---|---|
 | Time to first lantern (median) | 5 s or less | Over 10 s |
 | Median first-run death | 20–40 s | Under 15 s or over 60 s |
-| Second run within 5 min (P0 gate, arm 1, pooled, at least 20 testers) | 40% or more | Under 30%; 30–39% iterates |
+| Second run within 5 min (P0 gate, arm 1, pooled, at least 20 testers) | 40% or more | P0: under 25% after one iteration round (25–39% iterates). P1: organic rate under 30% after one iteration |
 | Restart latency | Under 1 s at p95 | Over 1.5 s |
 | Session length (median) | 4–8 min | Under 2 min |
 | Challenge conversion (challenge open to played run, P1) | 25% or more | Under 15%; 15–24% iterates |
