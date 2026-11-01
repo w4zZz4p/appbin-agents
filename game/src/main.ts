@@ -171,16 +171,17 @@ function endRun(cause: string): void {
 }
 
 function lightMap(): void {
-  const r = lightRun(mapState, sim.yUnits);
+  const r = lightRun(mapState, sim.yUnits, sim.lanterns);
   mapState = r.after;
   saveMap(mapState);
   const done = r.completedRivers > 0;
   mapView = {
     river: r.before.river, stretches: MAP_STRETCHES, from: r.before.lit, to: done ? MAP_STRETCHES : r.after.lit,
-    added: r.added, progress: 0, caption: done ? `River ${r.before.river} complete!` : `+${r.added}`,
+    added: r.added, progress: 0,
+    caption: done ? `River ${r.before.river} complete!` : r.fromLanterns > 0 ? `+${r.added} (${r.fromLanterns} from lanterns)` : `+${r.added}`,
   };
   mapAnimStart = performance.now();
-  log.add('map_light', { run_id: runId, added: r.added, lit: r.after.lit, river: r.after.river, total: r.after.total });
+  log.add('map_light', { run_id: runId, added: r.added, from_lanterns: r.fromLanterns, lit: r.after.lit, river: r.after.river, total: r.after.total });
   if (done) log.add('map_river_complete', { river: r.before.river, total: r.after.total });
   if (r.unlockedTint) {
     log.add('unlock', { item: 'tint_lantern_gold', total: r.after.total });

@@ -1,7 +1,7 @@
 /**
  * P2 river map: progress that carries over between sessions.
  * Every finished run lights map stretches in proportion to the distance travelled,
- * with a minimum of one (R4). A river has MAP_STRETCHES stretches; when it is fully
+ * with a minimum of one (R4), plus one extra stretch per 3 lanterns collected. A river has MAP_STRETCHES stretches; when it is fully
  * lit, the next river opens. Pure logic + a guarded, versioned localStorage store:
  * a wiped or blocked store just starts a fresh map and never blocks play.
  * Nothing here feeds back into the simulation.
@@ -10,6 +10,7 @@ import { STRETCH_LEN } from '../sim/tuning.ts';
 
 export const MAP_STRETCHES = 40;
 export const TINT_UNLOCK_TOTAL = 15; // placeholder cosmetic unlock
+export const LANTERNS_PER_STRETCH = 3; // every 3 lanterns in a run light one extra stretch
 
 const KEY = 'driftline.map.v1';
 const SCHEMA = 1;
@@ -24,6 +25,7 @@ export interface MapState {
 
 export interface LightResult {
   added: number;
+  fromLanterns: number;
   before: MapState;
   after: MapState;
   completedRivers: number;
@@ -39,9 +41,15 @@ export function stretchesFor(distanceUnits: number): number {
   return Math.max(1, Math.floor(distanceUnits / STRETCH_LEN));
 }
 
-export function lightRun(state: MapState, distanceUnits: number): LightResult {
+/** Lanterns make the map grow faster: one extra stretch per LANTERNS_PER_STRETCH collected. */
+export function lanternStretches(lanterns: number): number {
+  return Math.floor(Math.max(0, lanterns) / LANTERNS_PER_STRETCH);
+}
+
+export function lightRun(state: MapState, distanceUnits: number, lanterns = 0): LightResult {
   const before = { ...state };
-  const added = stretchesFor(distanceUnits);
+  const fromLanterns = lanternStretches(lanterns);
+  const added = stretchesFor(distanceUnits) + fromLanterns;
   const after = { ...state, total: state.total + added };
   let lit = state.lit + added;
   let completedRivers = 0;
@@ -53,7 +61,7 @@ export function lightRun(state: MapState, distanceUnits: number): LightResult {
   after.lit = lit;
   const unlockedTint = !state.tint && after.total >= TINT_UNLOCK_TOTAL;
   if (unlockedTint) after.tint = true;
-  return { added, before, after, completedRivers, unlockedTint };
+  return { added, fromLanterns, before, after, completedRivers, unlockedTint };
 }
 
 export function loadMap(storage: Pick<Storage, 'getItem'> | null = safeStorage()): MapState {

@@ -16,7 +16,7 @@ Prototype stages from [`product/PROTOTYPE.md`](../product/PROTOTYPE.md).
 
 - **Lighting** (`src/meta/map.ts`): every finished run lights map stretches in proportion
   to the distance travelled, `max(1, floor(distance / 1000))`, so even a first crash
-  lights one (R4). A river has 40 stretches. When it is fully lit, the next river opens.
+  lights one (R4). Every 3 lanterns collected light one extra stretch. A river has 40 stretches. When it is fully lit, the next river opens.
 - **Where it shows:** on the crash panel, as a serpentine river. Earlier stretches glow,
   the new ones light up in turn, and a lantern marks the head.
 - **Storage:** its own versioned key (`driftline.map.v1`). Wiped, corrupt, old-schema or
@@ -125,6 +125,15 @@ Events:
 
 Every event carries `arm`, `build`, `install` (random ID), `src` and `arrival_type`
 (organic or challenge), so challenged arrivals can be reported apart from the 40% gate.
+
+## Lanterns
+
+- **+15 points** each, shown as a "+15" burst on pickup.
+- **Light:** for 6 s the fog rolls back about 1 s further ahead (eased so you see it
+  move), the boat glows, and a meter under the score shows the light running out.
+- **Map:** every 3 lanterns in a run light one extra river-map stretch. The narrow fork
+  lane holds 6 lanterns, so it also grows the map faster.
+- The crash panel shows how many you collected.
 
 ## How it's built
 

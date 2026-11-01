@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { MAP_STRETCHES, TINT_UNLOCK_TOTAL, freshMap, lightRun, loadMap, mapArm, saveMap, stretchesFor } from '../../src/meta/map.ts';
+import {
+  LANTERNS_PER_STRETCH, MAP_STRETCHES, TINT_UNLOCK_TOTAL, freshMap, lightRun, loadMap, mapArm, saveMap, stretchesFor,
+} from '../../src/meta/map.ts';
 import { STRETCH_LEN } from '../../src/sim/tuning.ts';
 
 function memStore() {
@@ -13,6 +15,15 @@ describe('river map', () => {
     expect(stretchesFor(STRETCH_LEN - 1)).toBe(1);
     expect(stretchesFor(STRETCH_LEN * 3 + 10)).toBe(3);
     expect(lightRun(freshMap(), 50).added).toBe(1);
+  });
+
+  it('lanterns light extra stretches', () => {
+    expect(lightRun(freshMap(), STRETCH_LEN * 2, 0).added).toBe(2);
+    expect(lightRun(freshMap(), STRETCH_LEN * 2, LANTERNS_PER_STRETCH - 1).added).toBe(2);
+    const r = lightRun(freshMap(), STRETCH_LEN * 2, LANTERNS_PER_STRETCH * 2 + 1);
+    expect(r.added).toBe(4);
+    expect(r.fromLanterns).toBe(2);
+    expect(lightRun(freshMap(), 10, 0).added).toBe(1); // still a minimum of one
   });
 
   it('opens the next river when one is fully lit', () => {

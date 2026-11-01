@@ -1,5 +1,7 @@
 import type { Sim } from '../sim/sim.ts';
-import { BOAT_HL, BOAT_HW, BOAT_SCREEN_Y, FP, ROW, STRETCH_LEN, VIEW_H, WORLD_W, speedTick } from '../sim/tuning.ts';
+import {
+  BOAT_HL, BOAT_HW, BOAT_SCREEN_Y, FP, LANTERN_BONUS_TICKS, LANTERN_POINTS, ROW, STRETCH_LEN, VIEW_H, WORLD_W, speedTick,
+} from '../sim/tuning.ts';
 
 // Palette shifts with depth (one entry per stretch, then holds).
 const WATER = ['#3d8fc4', '#2f78ad', '#28639a', '#245089', '#2a4479', '#33396b'];
@@ -48,6 +50,11 @@ export class Renderer {
   private scale = 1;
   private offX = 0;
   private boatSY = 0;
+  // lantern feedback (render-only state)
+  private lastSim: Sim | null = null;
+  private lastLanterns = 0;
+  private fogVision = 0; // displayed vision, eased toward sim.vision so the fog visibly rolls back
+  private bursts: { x: number; y: number; t: number }[] = [];
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -73,6 +80,18 @@ export class Renderer {
     const { ctx, w, h, scale } = this;
     const by = sim.y / FP;
     const bx = sim.x / FP;
+    const now = performance.now();
+    if (sim !== this.lastSim) {
+      this.lastSim = sim;
+      this.lastLanterns = sim.lanterns;
+      this.fogVision = sim.vision;
+      this.bursts = [];
+    }
+    if (sim.lanterns > this.lastLanterns) {
+      this.bursts.push({ x: bx, y: by, t: now });
+      this.lastLanterns = sim.lanterns;
+    }
+    this.fogVision += (sim.vision - this.fogVision) * 0.08;
     const depth = Math.min(WATER.length - 1, Math.floor(by / STRETCH_LEN));
     const sx = (x: number) => this.offX + x * scale;
     const sy = (y: number) => this.boatSY - (y - by) * scale;
@@ -172,10 +191,37 @@ export class Renderer {
       ctx.stroke();
     }
 
+    // lantern light: a warm glow around the boat while the bonus lasts
+    if (sim.bonus > 0 && sim.alive) {
+      const k = sim.bonus / LANTERN_BONUS_TICKS;
+      const r = (60 + 30 * k) * scale;
+      const g = ctx.createRadialGradient(sx(bx), this.boatSY, 0, sx(bx), this.boatSY, r);
+      g.addColorStop(0, `rgba(255, 220, 130, ${0.35 * k + 0.1})`);
+      g.addColorStop(1, 'rgba(255, 220, 130, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(sx(bx) - r, this.boatSY - r, 2 * r, 2 * r);
+    }
+
     this.drawBoat(sx(bx), this.boatSY, sim, scale, sim.alive ? o.boatColor : '#c9c4b6');
 
+    // pickup bursts: an expanding ring and "+15"
+    this.bursts = this.bursts.filter((b) => now - b.t < 700);
+    for (const b of this.bursts) {
+      const t = (now - b.t) / 700;
+      const x = sx(b.x), y = sy(b.y);
+      ctx.strokeStyle = `rgba(255, 230, 150, ${1 - t})`;
+      ctx.lineWidth = 3 * scale * (1 - t) + 1;
+      ctx.beginPath();
+      ctx.arc(x, y, (10 + 50 * t) * scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(255, 233, 168, ${1 - t})`;
+      ctx.font = `700 ${Math.round(16 * scale)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(`+${LANTERN_POINTS}`, x + 22 * scale, y - 20 * scale - 30 * scale * t);
+    }
+
     // fog beyond vision (lanterns push it back ~1 s)
-    const vy = sy(by + sim.vision);
+    const vy = sy(by + this.fogVision);
     if (vy > 0) {
       const edge = 60 * scale;
       ctx.fillStyle = FOG;
@@ -324,9 +370,16 @@ export class Renderer {
     ctx.font = `${Math.round(13 * u)}px system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.fillText(`best ${o.best}`, 16 * u, 44 * u);
-    if (sim.bonus > 0) {
+    // light meter: how long the lantern keeps the fog pushed back
+    if (sim.bonus > 0 && sim.alive) {
+      const bw = 90 * u, k = sim.bonus / LANTERN_BONUS_TICKS;
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(16 * u, 66 * u, bw, 6 * u);
+      ctx.fillStyle = '#ffd66b';
+      ctx.fillRect(16 * u, 66 * u, bw * k, 6 * u);
       ctx.fillStyle = 'rgba(255, 225, 150, 0.9)';
-      ctx.fillText('lantern light', 16 * u, 62 * u);
+      ctx.font = `${Math.round(11 * u)}px system-ui, sans-serif`;
+      ctx.fillText('lantern light · see further', 16 * u, 76 * u);
     }
 
     if (o.hint > 0) {
@@ -358,7 +411,8 @@ export class Renderer {
       ctx.fillText(`Reached stretch ${sim.stretch}`, w / 2, h * 0.31);
       ctx.font = `${Math.round(16 * u)}px system-ui, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      const line = o.newBest ? `${sim.score} · new best` : `${sim.score} · best ${o.best}`;
+      const lan = sim.lanterns === 1 ? '1 lantern' : `${sim.lanterns} lanterns`;
+      const line = o.newBest ? `${sim.score} · ${lan} · new best` : `${sim.score} · ${lan} · best ${o.best}`;
       ctx.fillText(line, w / 2, h * 0.31 + 38 * u);
       ctx.font = `600 ${Math.round(18 * u)}px system-ui, sans-serif`;
       ctx.fillStyle = '#ffe9a8';
