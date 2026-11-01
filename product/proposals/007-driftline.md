@@ -1,6 +1,6 @@
 # 007: Driftline (concept)
 - Author: PO-Tech
-- Status: proposed
+- Status: accepted (merged into decision 001 as base)
 - Focus: tech & performance
 
 **Pitch:** Steer a paper boat down an endless river with one thumb or one mouse button. Grab lanterns, dodge rocks, and the current gets faster and narrower until you crash.

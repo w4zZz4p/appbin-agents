@@ -1,6 +1,6 @@
 # 004: Courier Regulars
 - Author: PO-Player
-- Status: proposed
+- Status: rejected for first title (see decision 001)
 - Focus: player experience, onboarding & retention
 
 **Pitch:** You run a bicycle courier route through a small, hand-drawn town. Plan a few tap-routes per shift, and the same townsfolk ("regulars") come back to you with orders, stories, and grudges, so every shift feels like visiting people you know.

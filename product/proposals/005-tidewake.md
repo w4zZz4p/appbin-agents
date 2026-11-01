@@ -1,6 +1,6 @@
 # 005: Tidewake (daily courses with shareable ghost wakes)
 - Author: PO-Social
-- Status: proposed
+- Status: accepted (merged into decision 001: ghost layer)
 - Focus: social, virality & multiplayer
 
 **Pitch:** A one-finger boat game where everyone runs the same daily tide course, and each finished run leaves a visible "wake" that friends and strangers can race as a ghost.

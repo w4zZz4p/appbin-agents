@@ -1,6 +1,6 @@
 # 002: Hindsight
 - Author: PO-Design
-- Status: proposed
+- Status: rejected for first title (see decision 001)
 - Focus: core loop & mechanics (is it fun to play, moment to moment?)
 
 **Pitch:** A lighthouse keeper has 12 seconds per loop. Everything you do in one loop replays as a ghost in the next, so plan a route that lets your past selves finish the job.

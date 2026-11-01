@@ -1,6 +1,6 @@
 # 008: Knotwork (concept)
 - Author: PO-Tech
-- Status: proposed
+- Status: deferred (puzzle fallback, see decision 001)
 - Focus: tech & performance
 
 **Pitch:** A tangle of glowing nodes and cords. Drag the nodes until no two cords cross. Each puzzle is a seed, so anyone with the link gets the same tangle.

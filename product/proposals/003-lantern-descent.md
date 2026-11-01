@@ -1,6 +1,6 @@
 # 003: Lantern Descent
 - Author: PO-Player
-- Status: proposed
+- Status: accepted (merged into decision 001: persistent map)
 - Focus: player experience, onboarding & retention
 
 **Pitch:** A one-input cave descent where you are a small lantern-bearer falling through a shaft; each run is 60–120 seconds, and every lit room you leave behind fills in a map of the cave that you carry into the next run.

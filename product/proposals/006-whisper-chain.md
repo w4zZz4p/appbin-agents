@@ -1,6 +1,6 @@
 # 006: Whisper Chain (async drawing-and-guessing telephone)
 - Author: PO-Social
-- Status: proposed
+- Status: rejected for first title (see decision 001)
 - Focus: social, virality & multiplayer
 
 **Pitch:** A quick, asynchronous chain game where a phrase is drawn, guessed, and passed along by strangers or friends. The reveal of how the message drifted is the thing people screenshot and share.

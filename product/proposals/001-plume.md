@@ -1,6 +1,6 @@
 # 001: Plume
 - Author: PO-Design
-- Status: proposed
+- Status: deferred (wind zones are a candidate post-MVP modifier, see decision 001)
 - Focus: core loop & mechanics (is it fun to play, moment to moment?)
 
 **Pitch:** You are a dandelion seed. Hold to puff yourself higher, release to drift, and thread the wind currents for as long as you can.
